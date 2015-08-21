@@ -1,5 +1,7 @@
 # BingImageOfTheDay
 downloading bing image of the day
+Initial release at 21-8-2015
+
 #Usage
 Copy the psm1 file to "C:\Program Files\WindowsPowerShell\Modules\BingImageOfTheDay"
 When powershell is used, get-BingImageOfTheDay will be available.
@@ -10,5 +12,3 @@ Arguments : -command & {ipmo BingImageOfTheDay;get-BingImageOfTheDay -BingImageS
 
 For further usage information use get-help get-BingImageOfTheDay.
 
-
-#Initial release at 21-8-2015
