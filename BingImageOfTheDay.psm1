@@ -60,7 +60,6 @@ function get-BingImageOfTheDay
                    $BingImageName = $BingBaseURl.Split("_")[0]
                    $BingImageName = $BingImageName.split("/")[-1]
                    $BingCopyright = $BingImage.copyright
-                   $BingCopyright = $BingCopyright.Replace("(Â","(")
                    $DownloadImage = "$BingCom/$BingBaseURl`_$BingImageSize`.jpg"
                    $SaveImage = $Destination+"\"+$BingImageName+$BingImageSize+".jpg"
                
