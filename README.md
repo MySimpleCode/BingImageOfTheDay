@@ -2,6 +2,10 @@
 downloading bing image of the day
 Initial release at 21-8-2015
 
+26-10-2015 version 1.1
+Added possibility to delete images if older then <n> days.
+if an image is deleted from the $Destionation folder, the description is also deleted from the ImageInfo file. 
+
 #Usage
 Copy the psm1 file to "C:\Program Files\WindowsPowerShell\Modules\BingImageOfTheDay"
 When powershell is used, get-BingImageOfTheDay will be available.

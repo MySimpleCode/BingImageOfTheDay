@@ -8,6 +8,9 @@
    At the moment you can download the images in the following resolutions 1366x768 and 1920x1080
    A history file is kept, with the description and Copyright information of the image file.
    Use of the images is protected by Copyright, please consult owner if you would like to use the images other then the desktop wallpaper or lockscreen feature.
+   26-10-2015 version 1.1
+   Added possibility to delete images if older then <n> days.
+   if an image is deleted from the $Destionation folder, the description is also deleted from the ImageInfo file. 
 .EXAMPLE
    saves bing image in default directory  %userprofile%\Pictures
    get-BingImageOfTheDay -BingImageSize 1920x1080
@@ -15,8 +18,8 @@
    saves bing image in tmp directory
    get-BingImageOfTheDay -BingImageSize 1366x768 -Destination $env:tmp
 .EXAMPLE
-   saves bing image in a directory, check for images posted 4 days back, screen size, and regional location
-   get-BingImageOfTheDay -BingImageSize 1366x768 -Destination c:\pictures -CountryCode de-DE -DaysBack 4
+   saves bing image in a directory, check for images posted 4 days back, screen size, and regional location, and delete all images older then 90 days
+   get-BingImageOfTheDay -BingImageSize 1366x768 -Destination c:\pictures -CountryCode de-DE -DaysBack 4 -DeleteOlder 90
 #>
 function get-BingImageOfTheDay 
 {
@@ -29,7 +32,9 @@ function get-BingImageOfTheDay
 		[ValidateSet("nl-NL","en-GB","en-US","fr-FR","de-DE")]
 		[string]$CountryCode="nl-NL",
         [ValidateSet("1","2","3","4","5","6","7")]
-        [string]$DaysBack="7"
+        [string]$DaysBack="7",
+        [string]$DeleteOlder,
+        [string]$InfoFileName="ImageInformation.txt"
     )
     Begin{
         $BingCom="http://bing.com" 
@@ -41,7 +46,6 @@ function get-BingImageOfTheDay
             }else{
                 if(!(Test-Path $Destination)){New-Item -Path $Destination -ItemType Directory}       
             }         
-            #$BingXML=[xml](Invoke-WebRequest -uri "$BingCom/HPImageArchive.aspx?format=xml&idx=0&n=$DaysBack&mkt=$CountryCode" -ErrorAction stop)
             $URL = "$BingCom/HPImageArchive.aspx?format=xml&idx=0&n=$DaysBack&mkt=$CountryCode"
             $BingXML = New-Object xml
 
@@ -66,12 +70,37 @@ function get-BingImageOfTheDay
                    if(!(test-path $SaveImage)){
                         write-output "Image not found, downloading $BingImageName$BingImageSize.jpg"
                         Invoke-WebRequest -Uri $DownloadImage -OutFile $SaveImage -ErrorAction stop | Out-Null
-                        Add-Content -Path $Destination\ImageInformation.txt -Value "$BingImageName$BingImageSize.jpg : $BingCopyright" -Encoding UTF8
+                        Add-Content -Path $Destination\$InfoFileName -Value "$BingImageName$BingImageSize.jpg : $BingCopyright" -Encoding UTF8
                     }            
                 }
             }
+            $ImageInfo=@()
+            $Images = dir $Destination
+            if($DeleteOlder){
+                $CurrentDate = Get-Date
+                $DeleteDate = (get-date).AddDays(-$DeleteOlder)
+                foreach ($Image in $Images){
+                    if($Image.LastWriteTime -gt $DeleteDate){
+                        $ImageInfo += get-content $Destination\$InfoFileName | select-string -pattern $Image.Name
+                    }else{
+                        if (!($image.PSIsContainer)){
+                            Remove-Item $Image.FullName -Force |Out-Null
+                        }
+                    }
+                }
+            }else{
+                foreach ($Image in $Images){
+                    $ImageInfo += get-content $Destination\$InfoFileName | select-string -pattern $Image.Name
+                }
+            }
+            $ImageInfo | Out-File $Destination\tmp.txt
+            #remove empty lines from file
+            (gc $Destination\tmp.txt) | ? {$_.trim() -ne "" } | set-content $Destination\tmp.txt
+            Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force -Confirm:$false
         }catch{
             write-error $_.exception.message
         }
     }
 }
+
+#get-BingImageOfTheDay -BingImageSize 1920x1080
