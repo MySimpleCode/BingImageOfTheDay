@@ -58,6 +58,8 @@ function get-BingImageOfTheDay
 
             $BingXML.Load($readXML)
 
+            [bool]$NewImage=$false
+
             if($BingXML){
                 foreach($BingImage in $BingXML.images.image){
                    $BingBaseURl = $BingImage.urlBase
@@ -68,37 +70,40 @@ function get-BingImageOfTheDay
                    $SaveImage = $Destination+"\"+$BingImageName+$BingImageSize+".jpg"
                
                    if(!(test-path $SaveImage)){
-                        write-output "Image not found, downloading $BingImageName$BingImageSize.jpg"
+                        Write-Output "Image not found, downloading $BingImageName$BingImageSize.jpg"
                         Invoke-WebRequest -Uri $DownloadImage -OutFile $SaveImage -ErrorAction stop | Out-Null
                         Add-Content -Path $Destination\$InfoFileName -Value "$BingImageName$BingImageSize.jpg : $BingCopyright" -Encoding UTF8
+                        [bool]$NewImage=$true
                     }            
                 }
             }
-            $ImageInfo=@()
-            $Images = dir $Destination
-            if($DeleteOlder){
-                $CurrentDate = Get-Date
-                $DeleteDate = (get-date).AddDays(-$DeleteOlder)
-                foreach ($Image in $Images){
-                    if($Image.LastWriteTime -gt $DeleteDate){
-                        $ImageInfo += get-content $Destination\$InfoFileName | select-string -pattern $Image.Name
-                    }else{
-                        if (!($image.PSIsContainer)){
-                            Remove-Item $Image.FullName -Force |Out-Null
+            if ($NewImage){
+                $ImageInfo=@()
+                $Images = dir $Destination
+                if($DeleteOlder){
+                    $CurrentDate = Get-Date
+                    $DeleteDate = (Get-Date).AddDays(-$DeleteOlder)
+                    foreach ($Image in $Images){
+                        if($Image.LastWriteTime -gt $DeleteDate){
+                            $ImageInfo += Get-Content $Destination\$InfoFileName | Select-String -pattern $Image.Name
+                        }else{
+                            if (!($image.PSIsContainer)){
+                                Remove-Item $Image.FullName -Force |Out-Null
+                            }
                         }
                     }
+                }else{
+                    foreach ($Image in $Images){
+                        $ImageInfo += Get-Content $Destination\$InfoFileName | select-string -pattern $Image.Name
+                    }
                 }
-            }else{
-                foreach ($Image in $Images){
-                    $ImageInfo += get-content $Destination\$InfoFileName | select-string -pattern $Image.Name
-                }
+                $ImageInfo | Out-File $Destination\tmp.txt -Width 500
+                #remove empty lines from file
+                (Get-Content $Destination\tmp.txt) | ? {$_.trim() -ne "" } | Set-Content $Destination\tmp.txt
+                Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force -Confirm:$false
             }
-            $ImageInfo | Out-File $Destination\tmp.txt
-            #remove empty lines from file
-            (gc $Destination\tmp.txt) | ? {$_.trim() -ne "" } | set-content $Destination\tmp.txt
-            Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force -Confirm:$false
         }catch{
-            write-error $_.exception.message
+            Write-Error $_.exception.message
         }
     }
 }
