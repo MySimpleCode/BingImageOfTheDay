@@ -97,9 +97,9 @@ function get-BingImageOfTheDay
                         $ImageInfo += Get-Content $Destination\$InfoFileName | select-string -pattern $Image.Name
                     }
                 }
-                $ImageInfo | Out-File $Destination\tmp.txt -Width 500
+                $ImageInfo | Out-File $Destination\tmp.txt -Width 500 -Encoding utf8
                 #remove empty lines from file
-                (Get-Content $Destination\tmp.txt) | ? {$_.trim() -ne "" } | Set-Content $Destination\tmp.txt
+                (Get-Content $Destination\tmp.txt) | ? {$_.trim() -ne "" } | Set-Content $Destination\tmp.txt -Encoding UTF8
                 Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force -Confirm:$false
             }
         }catch{
