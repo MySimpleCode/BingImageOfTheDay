@@ -36,32 +36,35 @@ function get-BingImageOfTheDay
         [string]$DeleteOlder,
         [string]$InfoFileName="ImageInformation.txt"
     )
-    Begin{
+    Begin
+    {
         $BingCom="http://bing.com" 
     }
-    Process{
-        try{
-            if(!($Destination)){
+    Process
+    {
+        try
+        {
+            if(!($Destination))
+            {
                 $Destination = (Get-ItemProperty "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" -Name "My Pictures")."My Pictures"
             }else{
                 if(!(Test-Path $Destination)){New-Item -Path $Destination -ItemType Directory}       
             }         
             $URL = "$BingCom/HPImageArchive.aspx?format=xml&idx=0&n=$DaysBack&mkt=$CountryCode"
             $BingXML = New-Object xml
-
             $resolveXML = New-Object -TypeName System.Xml.XmlUrlResolver
             $resolveXML.Credentials = [System.Net.CredentialCache]::DefaultCredentials
-
             $readXML = New-Object -TypeName System.Xml.XmlReaderSettings
             $readXML.XmlResolver = $resolveXML
             $readXML = [System.Xml.XmlReader]::Create($URL, $readXML)
-
             $BingXML.Load($readXML)
 
             [bool]$NewImage=$false
 
-            if($BingXML){
-                foreach($BingImage in $BingXML.images.image){
+            if($BingXML)
+            {
+                foreach($BingImage in $BingXML.images.image)
+                {
                    $BingBaseURl = $BingImage.urlBase
                    $BingImageName = $BingBaseURl.Split("_")[0]
                    $BingImageName = $BingImageName.split("/")[-1]
@@ -69,43 +72,54 @@ function get-BingImageOfTheDay
                    $DownloadImage = "$BingCom/$BingBaseURl`_$BingImageSize`.jpg"
                    $SaveImage = $Destination+"\"+$BingImageName+$BingImageSize+".jpg"
                
-                   if(!(test-path $SaveImage)){
+                   if(!(test-path $SaveImage))
+                   {
                         Write-Output "Image not found, downloading $BingImageName$BingImageSize.jpg"
-                        Invoke-WebRequest -Uri $DownloadImage -OutFile $SaveImage -ErrorAction stop | Out-Null
-                        Add-Content -Path $Destination\$InfoFileName -Value "$BingImageName$BingImageSize.jpg : $BingCopyright" -Encoding UTF8
+                        Invoke-WebRequest -Uri $DownloadImage `
+                                          -OutFile $SaveImage `
+                                          -ErrorAction stop | Out-Null
+                        Add-Content -Path $Destination\$InfoFileName `
+                                    -Value "$BingImageName$BingImageSize.jpg : $BingCopyright" `
+                                    -Encoding UTF8
                         [bool]$NewImage=$true
                     }            
                 }
             }
-            if ($NewImage){
+            if ($NewImage)
+            {
                 $ImageInfo=@()
                 $Images = dir $Destination
-                if($DeleteOlder){
+                if($DeleteOlder)
+                {
                     $CurrentDate = Get-Date
                     $DeleteDate = (Get-Date).AddDays(-$DeleteOlder)
-                    foreach ($Image in $Images){
-                        if($Image.LastWriteTime -gt $DeleteDate){
+                    foreach ($Image in $Images)
+                    {
+                        if($Image.LastWriteTime -gt $DeleteDate)
+                        {
                             $ImageInfo += Get-Content $Destination\$InfoFileName | Select-String -pattern $Image.Name
                         }else{
-                            if (!($image.PSIsContainer)){
+                            if (!($image.PSIsContainer))
+                            {
                                 Remove-Item $Image.FullName -Force |Out-Null
                             }
                         }
                     }
                 }else{
-                    foreach ($Image in $Images){
+                    foreach ($Image in $Images)
+                    {
                         $ImageInfo += Get-Content $Destination\$InfoFileName | select-string -pattern $Image.Name
                     }
                 }
-                $ImageInfo | Out-File $Destination\tmp.txt -Width 500 -Encoding utf8
+                $ImageInfo | Out-File $Destination\tmp.txt -Width 500 `
+                                                           -Encoding utf8
                 #remove empty lines from file
-                (Get-Content $Destination\tmp.txt) | ? {$_.trim() -ne "" } | Set-Content $Destination\tmp.txt -Encoding UTF8
-                Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force -Confirm:$false
+                (Get-Content $Destination\tmp.txt) | Where-Object {$_.trim() -ne "" } | Set-Content $Destination\tmp.txt -Encoding UTF8
+                Move-Item $Destination\tmp.txt $Destination\$InfoFileName -Force `
+                                                                          -Confirm:$false
             }
         }catch{
             Write-Error $_.exception.message
         }
     }
 }
-
-#get-BingImageOfTheDay -BingImageSize 1920x1080
